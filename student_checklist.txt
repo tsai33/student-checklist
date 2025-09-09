@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>學生每日整潔與潔牙檢查表</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F7FAFC; /* 淺灰色背景 */
+            display: flex;
+            min-height: 100vh;
+        }
+        .vertical-title {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #2D3748; /* 深灰色文字 */
+            padding: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #E2E8F0; /* 淺灰藍背景 */
+            border-right: 2px solid #CBD5E0; /* 柔和邊框 */
+        }
+        .main-content {
+            flex-grow: 1;
+            padding: 2rem;
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin: 2rem;
+            max-width: 1600px;
+        }
+        .status-dot {
+            width: 5rem;
+            height: 5rem;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .legend-dot {
+            width: 1.25rem;
+            height: 1.25rem;
+            border-radius: 50%;
+        }
+        .red-dot {
+            background-color: #D62828; /* 深紅色 */
+        }
+        .green-dot {
+            background-color: #10B981; /* 深綠色 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <!-- 垂直標題 -->
+    <div class="vertical-title">
+        學生每日整潔與潔牙檢查表
+    </div>
+
+    <!-- 主要內容區 -->
+    <div class="main-content">
+        
+        <!-- 日期選擇器 -->
+        <div class="mb-8 flex flex-col sm:flex-row items-center">
+            <label for="date" class="text-lg font-medium text-gray-700 mr-4 mb-2 sm:mb-0">請選擇日期：</label>
+            <input type="date" id="dateInput" class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2">
+        </div>
+
+        <!-- 學生列表 -->
+        <div id="studentGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-8">
+            <!-- JavaScript will generate the student list here -->
+        </div>
+        
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const dateInput = document.getElementById('dateInput');
+            const studentGrid = document.getElementById('studentGrid');
+            const totalStudents = 27;
+            
+            // 初始化數據庫結構
+            let dailyData = JSON.parse(localStorage.getItem('dailyStudentRecords')) || {};
+
+            // 設置預設日期為今天
+            const today = new Date().toISOString().slice(0, 10);
+            dateInput.value = today;
+
+            // 根據選定日期載入或初始化數據
+            function loadDataForDate(date) {
+                if (!dailyData[date]) {
+                    dailyData[date] = {};
+                    for (let i = 1; i <= totalStudents; i++) {
+                        dailyData[date][i] = {
+                            desk: 'red',
+                            brush: 'red'
+                        };
+                    }
+                    localStorage.setItem('dailyStudentRecords', JSON.stringify(dailyData));
+                }
+                renderGrid(dailyData[date]);
+            }
+
+            // 渲染學生列表
+            function renderGrid(currentDayData) {
+                studentGrid.innerHTML = '';
+                for (let i = 1; i <= totalStudents; i++) {
+                    const studentData = currentDayData[i] || { desk: 'red', brush: 'red' };
+
+                    const studentCard = document.createElement('div');
+                    studentCard.className = 'bg-white p-8 rounded-lg shadow-md flex flex-col items-center';
+                    studentCard.innerHTML = `
+                        <div class="text-4xl font-bold mb-4 text-gray-800">${i}</div>
+                        <div class="flex space-x-6">
+                            <div class="status-dot ${studentData.desk === 'green' ? 'green-dot' : 'red-dot'}" data-student-id="${i}" data-task="desk">座位</div>
+                            <div class="status-dot ${studentData.brush === 'green' ? 'green-dot' : 'red-dot'}" data-student-id="${i}" data-task="brush">潔牙</div>
+                        </div>
+                    `;
+                    studentGrid.appendChild(studentCard);
+                }
+
+                // 在第27個卡片後插入圖例卡片
+                const legendCard = document.createElement('div');
+                legendCard.className = 'bg-white p-8 rounded-lg shadow-md flex flex-col items-center justify-center';
+                legendCard.innerHTML = `
+                    <div class="flex flex-col space-y-4">
+                        <div class="flex items-center space-x-2">
+                            <div class="legend-dot bg-red-500"></div>
+                            <span class="text-lg font-bold">未完成</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <div class="legend-dot bg-green-500"></div>
+                            <span class="text-lg font-bold">已完成</span>
+                        </div>
+                    </div>
+                `;
+                studentGrid.appendChild(legendCard);
+            }
+
+            // 處理點擊事件
+            studentGrid.addEventListener('click', (e) => {
+                const target = e.target;
+                if (target.classList.contains('status-dot')) {
+                    const studentId = target.dataset.studentId;
+                    const task = target.dataset.task;
+                    const currentDate = dateInput.value;
+
+                    // 檢查資料是否存在，若無則初始化
+                    if (!dailyData[currentDate]) {
+                         dailyData[currentDate] = {};
+                         for (let i = 1; i <= totalStudents; i++) {
+                             dailyData[currentDate][i] = { desk: 'red', brush: 'red' };
+                         }
+                    }
+                    if (!dailyData[currentDate][studentId]) {
+                        dailyData[currentDate][studentId] = { desk: 'red', brush: 'red' };
+                    }
+                    
+                    // 切換顏色狀態
+                    if (dailyData[currentDate][studentId][task] === 'red') {
+                        dailyData[currentDate][studentId][task] = 'green';
+                        target.classList.remove('red-dot');
+                        target.classList.add('green-dot');
+                    } else {
+                        dailyData[currentDate][studentId][task] = 'red';
+                        target.classList.remove('green-dot');
+                        target.classList.add('red-dot');
+                    }
+                    
+                    // 保存到 localStorage
+                    localStorage.setItem('dailyStudentRecords', JSON.stringify(dailyData));
+                }
+            });
+
+            // 日期變動時，重新載入資料
+            dateInput.addEventListener('change', (e) => {
+                loadDataForDate(e.target.value);
+            });
+
+            // 初始載入當天數據
+            loadDataForDate(today);
+        });
+    </script>
+
+</body>
+</html>
